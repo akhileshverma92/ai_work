@@ -11,6 +11,12 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        cream: "#F2EDE4",
+        ink: "#1A1A1A",
+      },
+      fontFamily: {
+        dm: ["var(--font-dm)", "system-ui", "sans-serif"],
+        bebas: ["var(--font-bebas)", "Impact", "sans-serif"],
       },
     },
   },
