@@ -9,6 +9,48 @@ import { InsightsCard } from "./InsightsCard";
 import { StatCards } from "./StatCards";
 import { WeeklyBarChart } from "./WeeklyBarChart";
 
+function pctChange(current: number, previous: number): number {
+  if (previous === 0) return current === 0 ? 0 : 100;
+  return ((current - previous) / previous) * 100;
+}
+
+function buildDeterministicInsights(
+  entries: WeekEntry[],
+  prevEntries: WeekEntry[],
+  totalHours: number,
+  dailyAvg: number,
+  peakDay: string
+): string {
+  const validDays = entries.filter((e) => (e.totalWorkHours ?? 0) > 0);
+  const least = [...entries].sort(
+    (a, b) => (a.totalWorkHours ?? 0) - (b.totalWorkHours ?? 0)
+  )[0];
+  const prevTotal = prevEntries.reduce((sum, e) => sum + (e.totalWorkHours ?? 0), 0);
+  const diff = totalHours - prevTotal;
+  const change = pctChange(totalHours, prevTotal);
+  const consistency = validDays.length >= 5 ? "high" : validDays.length >= 3 ? "medium" : "low";
+
+  return `## Week Summary
+- Total logged work: **${totalHours.toFixed(1)}h**
+- Daily average: **${dailyAvg.toFixed(1)}h/day**
+- Compared to previous period: **${diff >= 0 ? "+" : ""}${diff.toFixed(1)}h** (${change >= 0 ? "+" : ""}${change.toFixed(0)}%)
+
+## Most Productive Day
+- **${peakDay}** had your highest work output this period.
+
+## Least Productive Day
+- **${least?.day || "—"}** was your lightest day (${(least?.totalWorkHours ?? 0).toFixed(1)}h).
+
+## Work Patterns
+- Active days this period: **${validDays.length}/${entries.length}**
+- Consistency level: **${consistency}**
+
+## Suggestions to Improve
+- Plan one focused deep-work block on your lighter days.
+- Try to keep daily output close to **${dailyAvg.toFixed(1)}h** for stable momentum.
+- If consistency is low, set a minimum daily target (example: 2h).`;
+}
+
 function addDaysIso(iso: string, delta: number): string {
   const [y, m, d] = iso.split("-").map(Number);
   const dt = new Date(y, m - 1, d);
@@ -136,22 +178,22 @@ export function StatsScreen({ onToast }: { onToast: (m: string) => void }) {
   }, [endDate, days]);
 
   const fetchInsights = useCallback(async () => {
-    setLoadingInsights(true);
     try {
-      const res = await fetch("/api/ai/insights", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weekData: entries }),
-      });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error || "Insights failed");
-      setInsights(j.insights as string);
+      setLoadingInsights(true);
+      const summary = buildDeterministicInsights(
+        entries,
+        prevEntries,
+        totalHours,
+        dailyAvg,
+        peakDay
+      );
+      setInsights(summary);
     } catch (e) {
       onToast(e instanceof Error ? e.message : "Insights failed");
     } finally {
       setLoadingInsights(false);
     }
-  }, [entries, onToast]);
+  }, [dailyAvg, entries, onToast, peakDay, prevEntries, totalHours]);
 
   return (
     <div>

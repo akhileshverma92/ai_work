@@ -54,6 +54,8 @@ export async function GET(req: Request) {
       totalWorkHours: getNumber(p, "Total Work Hours"),
       loginTime: getDateValue(p, "Login")?.start ?? null,
       logoutTime: getDateValue(p, "Logout")?.start ?? null,
+      lunchStart: getDateValue(p, "Lunch Start")?.start ?? null,
+      lunchEnd: getDateValue(p, "Lunch End")?.start ?? null,
       breakDuration: getNumber(p, "Break Duration"),
       lunchDuration: getNumber(p, "Lunch Duration"),
     }));

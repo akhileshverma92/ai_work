@@ -15,8 +15,8 @@ const bebas = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
-  title: "Chrono Bauhaus",
-  description: "One-tap smart work time tracker",
+  title: "Akkyyy WorkSpace",
+  description: "One-tap smart work time tracker with AI insights",
 };
 
 export default function RootLayout({

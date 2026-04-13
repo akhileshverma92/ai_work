@@ -6,8 +6,7 @@ export function AppHeader({ onSettings }: { onSettings?: () => void }) {
   return (
     <header className="mb-4 flex items-center justify-between px-1">
       <h1 className="font-dm text-sm font-bold uppercase tracking-wide text-[#1A1A1A]">
-        Chrono Bauhaus
-      </h1>
+        Akkyyy WorkSpace      </h1>
       <button
         type="button"
         onClick={onSettings}

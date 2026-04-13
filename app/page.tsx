@@ -30,7 +30,7 @@ function AppBody() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-[420px] flex-col bg-[#F2EDE4] px-4 pb-28 pt-6">
-      <AppHeader onSettings={() => onToast("Connect Notion & Gemini in .env.local")} />
+      <AppHeader onSettings={() => onToast("Connect Notion in .env.local")} />
 
       {tab === "tracker" && (
         <>
@@ -73,7 +73,7 @@ function AppBody() {
         </>
       )}
 
-      {tab === "history" && <HistoryList endDate={endDate} />}
+      {tab === "history" && <HistoryList endDate={endDate} onToast={onToast} />}
 
       {tab === "stats" && <StatsScreen onToast={onToast} />}
 
