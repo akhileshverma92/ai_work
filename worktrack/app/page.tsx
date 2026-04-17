@@ -49,7 +49,7 @@ function AppBody() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-[420px] flex-col bg-[#F2EDE4] px-4 pb-28 pt-6">
-      <AppHeader onSettings={() => onToast("Connect Notion in .env.local")} />
+      <AppHeader />
       {isViewer ? (
         <p className="mb-3 border-[1.5px] border-[#1A1A1A] bg-[#F5C800] px-3 py-2 font-dm text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]">
           Viewer mode: read-only access
