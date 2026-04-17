@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatDateLabel } from "@/lib/timeUtils";
+import {
+  combineDateAndTimeToIso,
+  formatHoursClock,
+  formatDateLabel,
+  isoToTimeInput,
+} from "@/lib/timeUtils";
 
 export type WeekEntry = {
+  pageId: string;
   date: string;
   day: string;
   totalWorkHours: number | null;
@@ -38,7 +44,7 @@ function toCsv(entries: WeekEntry[]): string {
     [
       e.date ? formatDateLabel(new Date(e.date + "T12:00:00")) : "",
       e.day ?? "",
-      e.totalWorkHours != null ? e.totalWorkHours.toFixed(1) : "",
+      e.totalWorkHours != null ? formatHoursClock(e.totalWorkHours) : "",
       e.loginTime ? formatHm(e.loginTime) : "",
       e.logoutTime ? formatHm(e.logoutTime) : "",
       e.breakDuration ?? "",
@@ -65,27 +71,37 @@ function downloadFile(filename: string, content: string, type: string) {
 export function HistoryList({
   endDate,
   onToast,
+  readOnly = false,
 }: {
   endDate: string;
   onToast: (message: string) => void;
+  readOnly?: boolean;
 }) {
   const [entries, setEntries] = useState<WeekEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editedHours, setEditedHours] = useState("");
+  const [editedLogin, setEditedLogin] = useState("");
+  const [editedLogout, setEditedLogout] = useState("");
+  const [editedLunchIn, setEditedLunchIn] = useState("");
+  const [editedLunchOut, setEditedLunchOut] = useState("");
+
+  const loadEntries = async (cancelled = false) => {
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `/api/notion/week?days=60&endDate=${encodeURIComponent(endDate)}`
+      );
+      const j = await res.json();
+      if (!cancelled && j.entries) setEntries(j.entries);
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(
-          `/api/notion/week?days=60&endDate=${encodeURIComponent(endDate)}`
-        );
-        const j = await res.json();
-        if (!cancelled && j.entries) setEntries(j.entries);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
+    void loadEntries(cancelled);
     return () => {
       cancelled = true;
     };
@@ -122,7 +138,7 @@ export function HistoryList({
           `<tr>
             <td>${e.date ? formatDateLabel(new Date(e.date + "T12:00:00")) : "—"}</td>
             <td>${e.day ?? "—"}</td>
-            <td>${e.totalWorkHours != null ? `${e.totalWorkHours.toFixed(1)}h` : "—"}</td>
+            <td>${e.totalWorkHours != null ? formatHoursClock(e.totalWorkHours) : "—"}</td>
             <td>${formatHm(e.loginTime)}</td>
             <td>${formatHm(e.logoutTime)}</td>
             <td>${e.breakDuration != null ? `${e.breakDuration}m` : "—"}</td>
@@ -130,7 +146,7 @@ export function HistoryList({
           </tr>`
       )
       .join("");
-    const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Work History</title><style>body{font-family:Arial,sans-serif;padding:26px;color:#0f172a}h1{margin:0;font-size:22px}p.meta{margin:6px 0 18px;color:#475569;font-size:12px}.summary{display:flex;gap:18px;margin:0 0 18px}.card{border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;font-size:12px;min-width:140px}.card b{display:block;font-size:15px;color:#0f172a;margin-top:3px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #cbd5e1;padding:8px;text-align:left;font-size:12px}th{background:#f8fafc;color:#0f172a}tbody tr:nth-child(even){background:#f8fafc}@media print{body{padding:0}}</style></head><body><h1>Work History Report</h1><p class="meta">Generated for period ending ${formatDateLabel(new Date(endDate + "T12:00:00"))}</p><div class="summary"><div class="card">Total entries<b>${entries.length}</b></div><div class="card">Total worked<b>${totalHours.toFixed(1)}h</b></div><div class="card">Average/day<b>${avgHours.toFixed(1)}h</b></div></div><table><thead><tr><th>Date</th><th>Day</th><th>Total Hours</th><th>Login</th><th>Logout</th><th>Break</th><th>Lunch</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+    const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Work History</title><style>body{font-family:Arial,sans-serif;padding:26px;color:#0f172a}h1{margin:0;font-size:22px}p.meta{margin:6px 0 18px;color:#475569;font-size:12px}.summary{display:flex;gap:18px;margin:0 0 18px}.card{border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;font-size:12px;min-width:140px}.card b{display:block;font-size:15px;color:#0f172a;margin-top:3px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #cbd5e1;padding:8px;text-align:left;font-size:12px}th{background:#f8fafc;color:#0f172a}tbody tr:nth-child(even){background:#f8fafc}@media print{body{padding:0}}</style></head><body><h1>Work History Report</h1><p class="meta">Generated for period ending ${formatDateLabel(new Date(endDate + "T12:00:00"))}</p><div class="summary"><div class="card">Total entries<b>${entries.length}</b></div><div class="card">Total worked<b>${formatHoursClock(totalHours)}</b></div><div class="card">Average/day<b>${formatHoursClock(avgHours)}</b></div></div><table><thead><tr><th>Date</th><th>Day</th><th>Total Hours</th><th>Login</th><th>Logout</th><th>Break</th><th>Lunch</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
     const w = window.open("", "_blank");
     if (!w) {
       onToast("Popup blocked. Allow popups to export PDF.");
@@ -143,6 +159,117 @@ export function HistoryList({
     setTimeout(() => {
       w.print();
     }, 250);
+  };
+
+  const startEdit = (entry: WeekEntry) => {
+    setEditingId(entry.pageId);
+    setEditedHours(
+      entry.totalWorkHours != null ? entry.totalWorkHours.toFixed(1) : ""
+    );
+    setEditedLogin(entry.loginTime ? isoToTimeInput(entry.loginTime) : "");
+    setEditedLogout(entry.logoutTime ? isoToTimeInput(entry.logoutTime) : "");
+    setEditedLunchIn(entry.lunchStart ? isoToTimeInput(entry.lunchStart) : "");
+    setEditedLunchOut(entry.lunchEnd ? isoToTimeInput(entry.lunchEnd) : "");
+  };
+
+  const clearEdit = () => {
+    setEditingId(null);
+    setEditedHours("");
+    setEditedLogin("");
+    setEditedLogout("");
+    setEditedLunchIn("");
+    setEditedLunchOut("");
+  };
+
+  const saveEdit = async (entry: WeekEntry) => {
+    const parsed = Number(editedHours);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      onToast("Enter a valid number of hours");
+      return;
+    }
+    if (!entry.date) {
+      onToast("Entry date missing, cannot save");
+      return;
+    }
+    if (!editedLogin.trim()) {
+      onToast("Login time is required");
+      return;
+    }
+
+    let loginIso: string;
+    let logoutIso: string | null = null;
+    let lunchStartIso: string | null = null;
+    let lunchEndIso: string | null = null;
+    try {
+      loginIso = combineDateAndTimeToIso(entry.date, editedLogin);
+      if (editedLogout.trim()) {
+        logoutIso = combineDateAndTimeToIso(entry.date, editedLogout);
+      }
+      if (editedLunchIn.trim()) {
+        lunchStartIso = combineDateAndTimeToIso(entry.date, editedLunchIn);
+      }
+      if (editedLunchOut.trim()) {
+        lunchEndIso = combineDateAndTimeToIso(entry.date, editedLunchOut);
+      }
+    } catch {
+      onToast("Invalid time format");
+      return;
+    }
+
+    if (lunchEndIso && !lunchStartIso) {
+      onToast("Set Lunch In before Lunch Out");
+      return;
+    }
+
+    if (logoutIso && new Date(logoutIso) < new Date(loginIso)) {
+      onToast("Logout must be after login");
+      return;
+    }
+
+    const updates: Record<string, unknown> = {
+      Login: loginIso,
+      "Total Work Hours": parsed,
+      Logout: logoutIso,
+      "Lunch Start": lunchStartIso,
+      "Lunch End": lunchEndIso,
+    };
+
+    const res = await fetch("/api/notion/update-entry", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pageId: entry.pageId,
+        updates,
+      }),
+    });
+    const j = await res.json();
+    if (!res.ok) {
+      onToast(j.error || "Failed to update");
+      return;
+    }
+    await loadEntries();
+    clearEdit();
+    onToast("Entry updated");
+  };
+
+  const deleteEntry = async (entry: WeekEntry) => {
+    const ok = window.confirm(
+      `Delete ${entry.date ? formatDateLabel(new Date(entry.date + "T12:00:00")) : "this entry"}?`
+    );
+    if (!ok) return;
+
+    const res = await fetch("/api/notion/update-entry", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pageId: entry.pageId }),
+    });
+    const j = await res.json();
+    if (!res.ok) {
+      onToast(j.error || "Failed to delete");
+      return;
+    }
+    setEntries((prev) => prev.filter((e) => e.pageId !== entry.pageId));
+    onToast("Entry deleted");
   };
 
   return (
@@ -165,18 +292,103 @@ export function HistoryList({
       </div>
       <ul className="divide-y-[1.5px] divide-[#1A1A1A]/20 border-[1.5px] border-[#1A1A1A] bg-white">
         {entries.map((e) => (
-          <li key={e.date} className="px-4 py-4">
+          <li key={e.pageId} className="px-4 py-4">
             <div className="flex items-baseline justify-between gap-2">
               <span className="font-dm text-xs font-bold uppercase tracking-wide text-[#1A1A1A]">
                 {e.date ? formatDateLabel(new Date(e.date + "T12:00:00")) : "—"}
               </span>
               <span className="font-dm text-xs text-[#1A1A1A]/70">
-                {e.totalWorkHours != null ? `${e.totalWorkHours.toFixed(1)}h` : "—"}
+                {editingId === e.pageId ? (
+                  <span className="inline-flex items-center gap-1">
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={editedHours}
+                      onChange={(ev) => setEditedHours(ev.target.value)}
+                      className="w-16 border border-[#1A1A1A]/40 px-1 py-[1px] text-right text-[11px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void saveEdit(e)}
+                      className="border border-[#1A1A1A]/30 px-1 py-[1px] text-[10px] font-bold"
+                    >
+                      SAVE
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearEdit}
+                      className="border border-[#1A1A1A]/30 px-1 py-[1px] text-[10px] font-bold"
+                    >
+                      X
+                    </button>
+                  </span>
+                ) : (
+                  <span>{e.totalWorkHours != null ? formatHoursClock(e.totalWorkHours) : "—"}</span>
+                )}
               </span>
             </div>
             <div className="mt-1 font-dm text-[11px] text-[#1A1A1A]/60">
               {formatHm(e.loginTime)} → {formatHm(e.logoutTime)}
             </div>
+            {editingId === e.pageId ? (
+              <div className="mt-2 grid grid-cols-2 gap-2 border border-[#1A1A1A]/15 bg-[#F7F3EA] p-2">
+                <label className="font-dm text-[10px] text-[#1A1A1A]/70">
+                  Login
+                  <input
+                    type="time"
+                    value={editedLogin}
+                    onChange={(ev) => setEditedLogin(ev.target.value)}
+                    className="mt-1 w-full border border-[#1A1A1A]/30 bg-white px-2 py-1 text-[11px]"
+                  />
+                </label>
+                <label className="font-dm text-[10px] text-[#1A1A1A]/70">
+                  Logout
+                  <input
+                    type="time"
+                    value={editedLogout}
+                    onChange={(ev) => setEditedLogout(ev.target.value)}
+                    className="mt-1 w-full border border-[#1A1A1A]/30 bg-white px-2 py-1 text-[11px]"
+                  />
+                </label>
+                <label className="font-dm text-[10px] text-[#1A1A1A]/70">
+                  Lunch In
+                  <input
+                    type="time"
+                    value={editedLunchIn}
+                    onChange={(ev) => setEditedLunchIn(ev.target.value)}
+                    className="mt-1 w-full border border-[#1A1A1A]/30 bg-white px-2 py-1 text-[11px]"
+                  />
+                </label>
+                <label className="font-dm text-[10px] text-[#1A1A1A]/70">
+                  Lunch Out
+                  <input
+                    type="time"
+                    value={editedLunchOut}
+                    onChange={(ev) => setEditedLunchOut(ev.target.value)}
+                    className="mt-1 w-full border border-[#1A1A1A]/30 bg-white px-2 py-1 text-[11px]"
+                  />
+                </label>
+              </div>
+            ) : null}
+            {!readOnly ? (
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => startEdit(e)}
+                  className="border border-[#1A1A1A]/30 px-2 py-1 font-dm text-[10px] font-bold tracking-wide text-[#1A1A1A]"
+                >
+                  EDIT
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void deleteEntry(e)}
+                  className="border border-[#B00020]/40 px-2 py-1 font-dm text-[10px] font-bold tracking-wide text-[#B00020]"
+                >
+                  DELETE
+                </button>
+              </div>
+            ) : null}
           </li>
         ))}
       </ul>

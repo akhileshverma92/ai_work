@@ -15,6 +15,15 @@ export function formatHMFromMinutes(mins: number): string {
   return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
 }
 
+/** Format decimal hours (e.g. 8.5) as H:MM (e.g. 8:30). */
+export function formatHoursClock(hours: number): string {
+  const safe = Math.max(0, Number.isFinite(hours) ? hours : 0);
+  const totalMins = Math.round(safe * 60);
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  return `${h}:${String(m).padStart(2, "0")}`;
+}
+
 export function formatDateLabel(d: Date): string {
   return d
     .toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })

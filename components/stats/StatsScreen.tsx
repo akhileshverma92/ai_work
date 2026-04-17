@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { WeekEntry } from "@/components/history/HistoryList";
-import { todayISOInTimezone } from "@/lib/timeUtils";
+import { formatHoursClock, todayISOInTimezone } from "@/lib/timeUtils";
 import { AnalyticsHeader } from "./AnalyticsHeader";
 import { DailyBreakdown } from "./DailyBreakdown";
 import { InsightsCard } from "./InsightsCard";
@@ -31,15 +31,15 @@ function buildDeterministicInsights(
   const consistency = validDays.length >= 5 ? "high" : validDays.length >= 3 ? "medium" : "low";
 
   return `## Week Summary
-- Total logged work: **${totalHours.toFixed(1)}h**
-- Daily average: **${dailyAvg.toFixed(1)}h/day**
-- Compared to previous period: **${diff >= 0 ? "+" : ""}${diff.toFixed(1)}h** (${change >= 0 ? "+" : ""}${change.toFixed(0)}%)
+- Total logged work: **${formatHoursClock(totalHours)}**
+- Daily average: **${formatHoursClock(dailyAvg)}/day**
+- Compared to previous period: **${diff >= 0 ? "+" : ""}${formatHoursClock(Math.abs(diff))}** (${change >= 0 ? "+" : ""}${change.toFixed(0)}%)
 
 ## Most Productive Day
 - **${peakDay}** had your highest work output this period.
 
 ## Least Productive Day
-- **${least?.day || "—"}** was your lightest day (${(least?.totalWorkHours ?? 0).toFixed(1)}h).
+- **${least?.day || "—"}** was your lightest day (${formatHoursClock(least?.totalWorkHours ?? 0)}).
 
 ## Work Patterns
 - Active days this period: **${validDays.length}/${entries.length}**
@@ -47,7 +47,7 @@ function buildDeterministicInsights(
 
 ## Suggestions to Improve
 - Plan one focused deep-work block on your lighter days.
-- Try to keep daily output close to **${dailyAvg.toFixed(1)}h** for stable momentum.
+- Try to keep daily output close to **${formatHoursClock(dailyAvg)}** for stable momentum.
 - If consistency is low, set a minimum daily target (example: 2h).`;
 }
 

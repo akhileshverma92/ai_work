@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ACCESS_COOKIE_NAME, ACCESS_COOKIE_VALUE } from "@/lib/access";
+import { ACCESS_COOKIE_NAME, isAccessCookieValue } from "@/lib/access";
 
 const PUBLIC_PATHS = ["/access", "/api/auth/access"];
 
@@ -12,8 +12,8 @@ function isPublicPath(pathname: string): boolean {
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const hasAccess =
-    req.cookies.get(ACCESS_COOKIE_NAME)?.value === ACCESS_COOKIE_VALUE;
+  const cookieValue = req.cookies.get(ACCESS_COOKIE_NAME)?.value;
+  const hasAccess = isAccessCookieValue(cookieValue);
 
   if (!hasAccess && !isPublicPath(pathname)) {
     return NextResponse.redirect(new URL("/access", req.url));

@@ -49,6 +49,7 @@ export async function GET(req: Request) {
       cursor = res.has_more ? res.next_cursor ?? undefined : undefined;
     } while (cursor);
     const entries = pages.map((p) => ({
+      pageId: p.id,
       date: getDateValue(p, "Date")?.start ?? "",
       day: getRichText(p, "Day") || weekdayFromDate(getDateValue(p, "Date")?.start),
       totalWorkHours: getNumber(p, "Total Work Hours"),

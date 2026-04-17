@@ -7,6 +7,7 @@ const btnBase =
 
 export function ActionButtons({
   phase,
+  readOnly = false,
   onStartWork,
   onTakeBreak,
   onLunchStart,
@@ -14,12 +15,21 @@ export function ActionButtons({
   onResumeWork,
 }: {
   phase: Phase;
+  readOnly?: boolean;
   onStartWork: () => void;
   onTakeBreak: () => void;
   onLunchStart: () => void;
   onEndWork: () => void;
   onResumeWork: () => void;
 }) {
+  if (readOnly) {
+    return (
+      <p className="my-2 text-center font-dm text-[11px] font-bold uppercase tracking-wider text-[#1A1A1A]/55">
+        Tracker controls are disabled in viewer mode.
+      </p>
+    );
+  }
+
   if (phase === "idle") {
     return (
       <div className="flex flex-col gap-3">

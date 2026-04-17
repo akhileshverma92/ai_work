@@ -1,30 +1,36 @@
 import { NextResponse } from "next/server";
 import {
   ACCESS_COOKIE_NAME,
-  ACCESS_COOKIE_VALUE,
-  getAccessPassword,
+  getOwnerPassword,
+  getViewerPassword,
+  resolveRoleByPassword,
 } from "@/lib/access";
 
 export async function POST(req: Request) {
   try {
     const { password } = (await req.json()) as { password?: string };
-    const expected = getAccessPassword();
+    const ownerPassword = getOwnerPassword();
+    const viewerPassword = getViewerPassword();
 
-    if (!expected) {
+    if (!ownerPassword && !viewerPassword) {
       return NextResponse.json(
-        { error: "APP_ACCESS_PASSWORD is not configured" },
+        {
+          error:
+            "Configure APP_OWNER_PASSWORD (and optionally APP_VIEWER_PASSWORD)",
+        },
         { status: 500 }
       );
     }
 
-    if (!password || password !== expected) {
+    const role = resolveRoleByPassword(password ?? "");
+    if (!role) {
       return NextResponse.json({ error: "Invalid password" }, { status: 401 });
     }
 
-    const res = NextResponse.json({ ok: true });
+    const res = NextResponse.json({ ok: true, role });
     res.cookies.set({
       name: ACCESS_COOKIE_NAME,
-      value: ACCESS_COOKIE_VALUE,
+      value: role,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

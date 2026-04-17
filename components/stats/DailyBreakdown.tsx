@@ -1,6 +1,7 @@
 "use client";
 
 import type { WeekEntry } from "@/components/history/HistoryList";
+import { formatHoursClock } from "@/lib/timeUtils";
 
 const tagColors = [
   "bg-[#E03030]",
@@ -61,7 +62,7 @@ export function DailyBreakdown({ entries }: { entries: WeekEntry[] }) {
                     </span>
                   </td>
                   <td className="px-2 py-2 font-bebas text-base text-[#1A1A1A]">
-                    {e.totalWorkHours != null ? `${e.totalWorkHours.toFixed(1)}h` : "—"}
+                    {e.totalWorkHours != null ? formatHoursClock(e.totalWorkHours) : "—"}
                   </td>
                 </tr>
               );

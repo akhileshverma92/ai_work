@@ -18,6 +18,7 @@ function AppBody() {
   const toast = useToast();
   const onToast = useCallback((m: string) => toast(m), [toast]);
   const session = useWorkSession({ onToast });
+  const [role, setRole] = useState<"owner" | "viewer" | null>(null);
   const [tab, setTab] = useState<TabId>("tracker");
   const endDate = todayISOInTimezone();
   const [startLoginIso, setStartLoginIso] = useState(() =>
@@ -28,9 +29,32 @@ function AppBody() {
     if (session.loginTime) setStartLoginIso(session.loginTime);
   }, [session.loginTime]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        const j = (await res.json()) as { role?: "owner" | "viewer" | null };
+        if (!cancelled) setRole(j.role ?? null);
+      } catch {
+        if (!cancelled) setRole(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const isViewer = role === "viewer";
+
   return (
     <div className="mx-auto flex min-h-screen max-w-[420px] flex-col bg-[#F2EDE4] px-4 pb-28 pt-6">
       <AppHeader onSettings={() => onToast("Connect Notion in .env.local")} />
+      {isViewer ? (
+        <p className="mb-3 border-[1.5px] border-[#1A1A1A] bg-[#F5C800] px-3 py-2 font-dm text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]">
+          Viewer mode: read-only access
+        </p>
+      ) : null}
 
       {tab === "tracker" && (
         <>
@@ -47,9 +71,11 @@ function AppBody() {
             logoutTime={session.logoutTime}
             saveManualEntry={session.saveManualEntry}
             onToast={onToast}
+            readOnly={isViewer}
           />
           <ActionButtons
             phase={session.phase}
+            readOnly={isViewer}
             onStartWork={() =>
               session.startWork({
                 afterComplete: session.phase === "done",
@@ -73,7 +99,9 @@ function AppBody() {
         </>
       )}
 
-      {tab === "history" && <HistoryList endDate={endDate} onToast={onToast} />}
+      {tab === "history" && (
+        <HistoryList endDate={endDate} onToast={onToast} readOnly={isViewer} />
+      )}
 
       {tab === "stats" && <StatsScreen onToast={onToast} />}
 

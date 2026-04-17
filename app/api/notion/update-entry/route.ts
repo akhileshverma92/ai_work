@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { ACCESS_COOKIE_NAME } from "@/lib/access";
 import { getNotionClient } from "@/lib/notion";
 import type { PageObjectResponse } from "@notionhq/client";
 import { getDateValue } from "@/lib/notion";
@@ -30,7 +32,7 @@ function buildPropertiesFromUpdates(
   const props: Record<string, unknown> = {};
 
   for (const [key, val] of Object.entries(updates)) {
-    if (val === undefined || val === null) continue;
+    if (val === undefined) continue;
     if (key === "Date" && typeof val === "string") {
       props[key] = { date: { start: val } };
       continue;
@@ -44,10 +46,12 @@ function buildPropertiesFromUpdates(
       key === "Lunch End"
     ) {
       if (typeof val === "string") props[key] = dateProp(val);
+      else if (val === null) props[key] = { date: null };
       continue;
     }
     if (key === "Break Duration" || key === "Lunch Duration" || key === "Total Work Hours") {
       if (typeof val === "number") props[key] = numProp(val);
+      else if (val === null) props[key] = { number: null };
     }
   }
 
@@ -83,6 +87,15 @@ function computeTotals(page: PageObjectResponse, logoutIso: string) {
 
 export async function PATCH(req: Request) {
   try {
+    const cookieStore = await cookies();
+    const role = cookieStore.get(ACCESS_COOKIE_NAME)?.value;
+    if (role !== "owner") {
+      return NextResponse.json(
+        { error: "Read-only access: owner role required" },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { pageId, updates } = body as {
       pageId?: string;
@@ -130,6 +143,36 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ ok: true });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Failed to update entry";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const cookieStore = await cookies();
+    const role = cookieStore.get(ACCESS_COOKIE_NAME)?.value;
+    if (role !== "owner") {
+      return NextResponse.json(
+        { error: "Read-only access: owner role required" },
+        { status: 403 }
+      );
+    }
+
+    const body = await req.json();
+    const { pageId } = body as { pageId?: string };
+    if (!pageId) {
+      return NextResponse.json({ error: "pageId is required" }, { status: 400 });
+    }
+
+    const notion = getNotionClient();
+    await notion.pages.update({
+      page_id: pageId,
+      archived: true,
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Failed to delete entry";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

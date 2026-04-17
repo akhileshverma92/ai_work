@@ -1,5 +1,7 @@
 "use client";
 
+import { formatHoursClock } from "@/lib/timeUtils";
+
 export function StatCards({
   totalHours,
   dailyAvg,
@@ -25,7 +27,7 @@ export function StatCards({
           Total hours
         </p>
         <p className="my-1 font-bebas text-3xl text-[#1A1A1A]">
-          {totalHours.toFixed(1)}h
+          {formatHoursClock(totalHours)}
         </p>
         <p className="font-dm text-[8px] font-medium uppercase leading-tight text-[#1A1A1A]/50">
           {delta >= 0 ? "↑" : "↓"} {Math.abs(delta)}% from last period
@@ -36,7 +38,7 @@ export function StatCards({
           Daily average
         </p>
         <p className="my-1 font-bebas text-3xl text-[#1A1A1A]">
-          {dailyAvg.toFixed(1)}h
+          {formatHoursClock(dailyAvg)}
         </p>
         <p className="font-dm text-[8px] font-bold uppercase text-[#1A1A1A]/70">
           Consistent performance

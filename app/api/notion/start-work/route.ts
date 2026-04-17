@@ -1,8 +1,19 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { getDataSourceId, getNotionClient } from "@/lib/notion";
+import { ACCESS_COOKIE_NAME } from "@/lib/access";
 
 export async function POST(req: Request) {
   try {
+    const cookieStore = await cookies();
+    const role = cookieStore.get(ACCESS_COOKIE_NAME)?.value;
+    if (role !== "owner") {
+      return NextResponse.json(
+        { error: "Read-only access: owner role required" },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { date, day, month, loginTime } = body as {
       date?: string;

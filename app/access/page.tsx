@@ -35,7 +35,7 @@ export default function AccessPage() {
       <div className="border-[1.5px] border-[#1A1A1A] bg-white p-5">
         <h1 className="font-bebas text-3xl uppercase text-[#1A1A1A]">Enter Password</h1>
         <p className="mt-1 font-dm text-sm text-[#1A1A1A]/70">
-          This app is protected. Enter password to continue.
+          Use owner password for full access, or viewer password for read-only access.
         </p>
         <form onSubmit={onSubmit} className="mt-4 space-y-3">
           <input

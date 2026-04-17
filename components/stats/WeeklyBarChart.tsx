@@ -1,5 +1,19 @@
 "use client";
 
+import {
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  Tooltip,
+  type ChartOptions,
+} from "chart.js";
+import { Bar } from "react-chartjs-2";
+import { formatHoursClock } from "@/lib/timeUtils";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+
 export function WeeklyBarChart({
   days,
   rangeLabel,
@@ -7,8 +21,56 @@ export function WeeklyBarChart({
   days: { label: string; hours: number }[];
   rangeLabel: string;
 }) {
-  const maxH = Math.max(0.01, ...days.map((d) => d.hours));
-  const maxPx = 120;
+  const barColors = [
+    "#ed1607",
+    "#f57115",
+    "#14532D",
+    "#3b82f6",
+    "#8b5cf6",
+    "#a855f7",
+    "#0e7490",
+  ];
+
+  const data = {
+    labels: days.map((d) => d.label),
+    datasets: [
+      {
+        label: "Hours worked",
+        data: days.map((d) => Number(d.hours.toFixed(2))),
+        backgroundColor: days.map((_, i) => barColors[i % barColors.length]),
+        borderRadius: 6,
+        borderSkipped: false as const,
+      },
+    ],
+  };
+  const options: ChartOptions<"bar"> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => formatHoursClock(ctx.parsed.y ?? 0),
+        },
+      },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: {
+          color: "#6B6B6B",
+          font: { size: 10, weight: 700 },
+        },
+      },
+      y: {
+        beginAtZero: true,
+        ticks: {
+          color: "#6B6B6B",
+          callback: (value) => `${value}h`,
+        },
+      },
+    },
+  };
 
   return (
     <div className="mb-6 border-[1.5px] border-[#1A1A1A] bg-white p-4">
@@ -18,25 +80,8 @@ export function WeeklyBarChart({
         </p>
         <p className="font-dm text-[10px] text-[#1A1A1A]/60">{rangeLabel}</p>
       </div>
-      <div className="flex h-[140px] items-end justify-between gap-1">
-        {days.map((d) => {
-          const h = (d.hours / maxH) * maxPx;
-          return (
-            <div
-              key={d.label}
-              className="flex flex-1 flex-col items-center justify-end gap-2"
-            >
-              <div
-                className="w-full max-w-[28px] bg-[#1A1A1A] transition-all"
-                style={{ height: `${Math.max(4, h)}px` }}
-                title={`${d.hours.toFixed(1)}h`}
-              />
-              <span className="font-dm text-[9px] font-bold uppercase text-[#1A1A1A]/70">
-                {d.label}
-              </span>
-            </div>
-          );
-        })}
+      <div className="h-[190px]">
+        <Bar data={data} options={options} />
       </div>
     </div>
   );
