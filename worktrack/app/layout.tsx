@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   title: "Akkyyy WorkSpace",
   description: "One-tap smart work time tracker with AI insights",
 };
+export const viewport = {
+  themeColor: '#7335e6', // Change this to your hex color
+}
 
 export default function RootLayout({
   children,
