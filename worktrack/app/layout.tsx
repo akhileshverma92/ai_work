@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   description: "One-tap smart work time tracker with AI insights",
 };
 export const viewport = {
-  themeColor: '#7335e6', // Change this to your hex color
+  themeColor: '#7926b5', // Change this to your hex color
 }
 
 export default function RootLayout({
