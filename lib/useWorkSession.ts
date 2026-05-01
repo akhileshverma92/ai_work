@@ -10,6 +10,7 @@ import {
   getMonthLabel,
   todayISOInTimezone,
 } from "@/lib/timeUtils";
+import { fetchWithOfflineQueue } from "@/lib/offlineQueue";
 
 export type Phase = "idle" | "working" | "on_break" | "on_lunch" | "done";
 
@@ -60,13 +61,17 @@ function clearSession() {
 }
 
 async function patchEntry(pageId: string, updates: Record<string, unknown>) {
-  const res = await fetch("/api/notion/update-entry", {
+  const { response, queued } = await fetchWithOfflineQueue({
+    url: "/api/notion/update-entry",
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ pageId, updates }),
   });
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((j as { error?: string }).error || "Update failed");
+  if (queued) return;
+  const j = await response?.json().catch(() => ({}));
+  if (!response?.ok) {
+    throw new Error((j as { error?: string }).error || "Update failed");
+  }
 }
 
 async function postStartWork(body: {

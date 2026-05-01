@@ -12,11 +12,13 @@ import { ManualTimeEntry } from "@/components/tracker/ManualTimeEntry";
 import { TodaySummary } from "@/components/tracker/TodaySummary";
 import { ToastProvider, useToast } from "@/components/Toast";
 import { todayISOInTimezone } from "@/lib/timeUtils";
+import { useOfflineSync } from "@/lib/useOfflineSync";
 import { useWorkSession } from "@/lib/useWorkSession";
 
 function AppBody() {
   const toast = useToast();
   const onToast = useCallback((m: string) => toast(m), [toast]);
+  useOfflineSync({ onToast });
   const session = useWorkSession({ onToast });
   const [role, setRole] = useState<"owner" | "viewer" | null>(null);
   const [tab, setTab] = useState<TabId>("tracker");

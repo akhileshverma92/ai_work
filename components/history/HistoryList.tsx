@@ -7,6 +7,7 @@ import {
   formatDateLabel,
   isoToTimeInput,
 } from "@/lib/timeUtils";
+import { fetchWithOfflineQueue } from "@/lib/offlineQueue";
 
 export type WeekEntry = {
   pageId: string;
@@ -234,7 +235,8 @@ export function HistoryList({
       "Lunch End": lunchEndIso,
     };
 
-    const res = await fetch("/api/notion/update-entry", {
+    const { response, queued } = await fetchWithOfflineQueue({
+      url: "/api/notion/update-entry",
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -242,8 +244,13 @@ export function HistoryList({
         updates,
       }),
     });
-    const j = await res.json();
-    if (!res.ok) {
+    if (queued) {
+      clearEdit();
+      onToast("Offline: edit queued and will sync automatically");
+      return;
+    }
+    const j = await response?.json();
+    if (!response?.ok) {
       onToast(j.error || "Failed to update");
       return;
     }
@@ -258,13 +265,19 @@ export function HistoryList({
     );
     if (!ok) return;
 
-    const res = await fetch("/api/notion/update-entry", {
+    const { response, queued } = await fetchWithOfflineQueue({
+      url: "/api/notion/update-entry",
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pageId: entry.pageId }),
     });
-    const j = await res.json();
-    if (!res.ok) {
+    if (queued) {
+      setEntries((prev) => prev.filter((e) => e.pageId !== entry.pageId));
+      onToast("Offline: delete queued and will sync automatically");
+      return;
+    }
+    const j = await response?.json();
+    if (!response?.ok) {
       onToast(j.error || "Failed to delete");
       return;
     }
